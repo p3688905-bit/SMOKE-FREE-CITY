@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>無菸城市 SMOKE-FREE CITY｜像素解謎RPG</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/fusion-pixel-12px-monospaced-tc@latest/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/fusion-pixel-12px-proportional-tc@latest/index.css">
+<style>
+:root{
+  --green:#3fae5a; --green-d:#2b7a3f; --ink:#2b2233; --paper:#fff6df;
+  --gold:#ffc93c; --red:#e84b3c; --blue:#3b6fd4;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  background:#151021;
+  font-family:"Fusion Pixel 12px Monospaced TC","Fusion Pixel 12px Proportional TC","DotGothic16",monospace;
+  color:var(--paper); overflow:hidden; user-select:none;
+}
+#app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;}
+.screen.active{display:flex;}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;}
+
+/* ---------- 像素框 ---------- */
+.pbox{
+  background:var(--paper); color:var(--ink);
+  border:4px solid var(--ink);
+  box-shadow:0 0 0 4px var(--paper), 0 0 0 8px var(--ink), 6px 6px 0 8px rgba(0,0,0,.35);
+  padding:14px 18px;
+}
+.btn{
+  display:block; width:100%; margin:8px 0; padding:10px 16px;
+  font-family:inherit; font-size:17px; color:var(--paper);
+  background:var(--green); border:none; cursor:pointer;
+  box-shadow:0 5px 0 var(--green-d), 0 0 0 3px var(--ink);
+  transition:transform .05s, box-shadow .05s;
+  letter-spacing:2px;
+}
+.btn:hover{filter:brightness(1.08);}
+.btn:active{transform:translateY(4px); box-shadow:0 1px 0 var(--green-d),0 0 0 3px var(--ink);}
+.btn.alt{background:var(--blue); box-shadow:0 5px 0 #274a92,0 0 0 3px var(--ink);}
+.btn.alt:active{box-shadow:0 1px 0 #274a92,0 0 0 3px var(--ink);}
+.btn.gold{background:#e0a520; box-shadow:0 5px 0 #9c7212,0 0 0 3px var(--ink);}
+.btn.gold:active{box-shadow:0 1px 0 #9c7212,0 0 0 3px var(--ink);}
+.btn.small{font-size:13px;padding:7px 10px;margin:4px;letter-spacing:1px;width:auto;}
+.btn:disabled{background:#7a7a86;box-shadow:0 5px 0 #55555f,0 0 0 3px var(--ink);cursor:not-allowed;opacity:.7;}
+
+/* ---------- 標題畫面 ---------- */
+#screen-title{background:#0e0a18;}
+#titleCanvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.95;}
+.title-overlay{position:relative;z-index:2;text-align:center;padding:20px;width:min(420px,92vw);}
+.game-title{
+  font-size:clamp(44px,10vw,72px); letter-spacing:10px; color:var(--gold);
+  text-shadow:0 0 2px #000, 4px 4px 0 var(--red), 8px 8px 0 rgba(0,0,0,.45);
+  animation:bob 2.4s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.game-sub{
+  margin:6px 0 4px; font-size:14px; color:#fff; letter-spacing:3px;
+  text-shadow:2px 2px 0 rgba(0,0,0,.6);
+}
+.game-sub2{font-size:12px;color:#cfe8ff;text-shadow:1px 1px 0 rgba(0,0,0,.6);margin-bottom:18px;letter-spacing:2px;}
+.blink{animation:blink 1.1s steps(2) infinite;}
+@keyframes blink{50%{opacity:.25}}
+.title-menu{background:rgba(20,14,32,.82);border:4px solid var(--ink);box-shadow:0 0 0 4px var(--paper),0 0 0 8px var(--ink);padding:16px 20px;border-radius:0;}
+.credit{position:absolute;bottom:8px;width:100%;text-align:center;font-size:11px;color:rgba(255,255,255,.55);z-index:2;letter-spacing:1px;}
+
+/* ---------- 過場劇情 ---------- */
+#screen-story{background:#000;}
+#storyWrap{position:relative;width:min(960px,100vw);aspect-ratio:16/9;max-height:78vh;}
+#storyCanvas{width:100%;height:100%;background:#000;box-shadow:0 0 0 4px #000,0 0 40px rgba(0,0,0,.8);}
+#storyBox{
+  position:absolute;left:3%;right:3%;bottom:3%;min-height:28%;
+  background:rgba(16,20,44,.94); border:3px solid #fff;
+  box-shadow:0 0 0 3px #2b2f63, inset 0 0 0 2px #6a74c9;
+  padding:10px 14px; cursor:pointer;
+}
+#storySpeaker{color:var(--gold);font-size:15px;letter-spacing:2px;margin-bottom:4px;text-shadow:1px 1px 0 #000;}
+#storyText{color:#fff;font-size:15px;line-height:1.65;letter-spacing:1px;white-space:pre-wrap;text-shadow:1px 1px 0 #000;}
+#storyNext{position:absolute;right:12px;bottom:6px;color:#9fe8ff;font-size:12px;}
+#storyChap{position:absolute;top:-34px;left:0;color:#fff;font-size:13px;letter-spacing:2px;text-shadow:2px 2px 0 #000;background:rgba(0,0,0,.5);padding:4px 10px;}
+
+/* ---------- 遊戲畫面 ---------- */
+#screen-game{background:linear-gradient(#1b1430,#101024);padding:8px;gap:6px;justify-content:flex-start;overflow-y:auto;}
+#hud{width:min(640px,96vw);display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;}
+.hudbox{background:#241b3d;border:3px solid #000;box-shadow:0 0 0 2px #8a7bc9;padding:5px 10px;font-size:13px;letter-spacing:1px;}
+#lvName{color:var(--gold);}
+#moveInfo{color:#bfe8ff;}
+#xpInfo{color:#ffd9e8;}
+#hudBtns{display:flex;gap:4px;flex-wrap:wrap;}
+#progressDots{display:flex;gap:3px;width:min(640px,96vw);justify-content:center;flex-wrap:wrap;padding:2px;}
+.dot{width:10px;height:10px;background:#3a2f57;box-shadow:0 0 0 2px #000;}
+.dot.cur{background:#fff;}
+.dot.s1{background:#c98b2e;} .dot.s2{background:#c9c9d6;} .dot.s3{background:var(--gold);}
+#canvasWrap{position:relative;width:min(640px,96vw);}
+#gameCanvas{width:100%;height:auto;display:block;background:#000;box-shadow:0 0 0 4px #000,0 0 0 7px #6c5aa8,10px 10px 0 7px rgba(0,0,0,.4);touch-action:none;}
+#controls{display:flex;gap:14px;align-items:center;justify-content:center;width:min(640px,96vw);margin-top:4px;}
+#dpad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px;}
+.dbtn{
+  font-family:inherit;font-size:22px;color:#fff;background:#33285a;border:3px solid #000;
+  box-shadow:0 4px 0 #1b1436,0 0 0 2px #8a7bc9;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.dbtn:active{transform:translateY(3px);box-shadow:0 1px 0 #1b1436,0 0 0 2px #8a7bc9;background:var(--green);}
+#dpad .u{grid-area:1/2}#dpad .l{grid-area:2/1}#dpad .r{grid-area:2/3}#dpad .d{grid-area:3/2}
+#sideBtns{display:flex;flex-direction:column;gap:6px;}
+@media (pointer:fine) and (min-width:900px){ #dpad{display:none;} }
+
+/* ---------- 過關 / 說明 / 結局 ---------- */
+.overlay{
+  position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  background:rgba(10,6,20,.78);
+}
+.hidden{display:none !important;}
+#clearBox{text-align:center;width:min(360px,90vw);animation:pop .35s ease-out;}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+#clearStars{font-size:44px;color:var(--gold);text-shadow:3px 3px 0 rgba(0,0,0,.5);letter-spacing:6px;margin:6px 0;}
+#clearTitle{font-size:24px;color:var(--red);letter-spacing:4px;text-shadow:2px 2px 0 rgba(0,0,0,.2);}
+#clearInfo{font-size:14px;margin:10px 0;line-height:1.8;}
+#clearXp{color:#2b7a3f;font-weight:bold;}
+
+.modal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(8,5,16,.85);padding:16px;}
+#helpBox{width:min(520px,94vw);max-height:88vh;overflow-y:auto;font-size:14px;line-height:1.9;}
+#helpBox h2{color:var(--red);letter-spacing:3px;margin-bottom:8px;font-size:20px;}
+#helpBox h3{color:var(--green-d);margin-top:10px;font-size:15px;}
+#helpBox .k{background:var(--ink);color:var(--gold);padding:1px 6px;box-shadow:2px 2px 0 rgba(0,0,0,.3);}
+
+#screen-ending{background:#000;}
+#endWrap{position:relative;width:min(960px,100vw);aspect-ratio:16/9;max-height:70vh;}
+#endCanvas{width:100%;height:100%;}
+#endOverlay{width:min(680px,94vw);text-align:center;margin-top:10px;max-height:30vh;overflow-y:auto;}
+#endText{font-size:14px;line-height:1.9;color:var(--ink);white-space:pre-wrap;}
+#endStats{margin:8px 0;font-size:15px;color:#2b7a3f;letter-spacing:1px;}
+#endBtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ 標題畫面 ============ -->
+  <div id="screen-title" class="screen active">
+    <canvas id="titleCanvas" width="480" height="270"></canvas>
+    <div class="title-overlay">
+      <div class="game-title">無菸城市</div>
+      <div class="game-sub">SMOKE-FREE CITY</div>
+      <div class="game-sub2 blink">～ 台北步行街 像素解謎 RPG ～</div>
+      <div class="title-menu">
+        <button class="btn" id="btnStart">▶ 新的遊戲</button>
+        <button class="btn alt" id="btnContinue">▶ 繼續遊戲</button>
+        <button class="btn gold" id="btnHelpTitle">❓ 遊戲說明</button>
+        <button class="btn alt" id="btnMusicTitle">♪ 音樂：開</button>
+      </div>
+    </div>
+    <div class="credit">© 2026 反二手菸防衛隊 ・ 全部圖像與音樂皆由程式即時生成</div>
+  </div>
+
+  <!-- ============ 過場劇情畫面 ============ -->
+  <div id="screen-story" class="screen">
+    <div id="storyWrap">
+      <div id="storyChap"></div>
+      <canvas id="storyCanvas" width="480" height="270"></canvas>
+      <div id="storyBox">
+        <div id="storySpeaker"></div>
+        <div id="storyText"></div>
+        <div id="storyNext" class="blink">▼ 點擊繼續</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 遊戲畫面 ============ -->
+  <div id="screen-game" class="screen">
+    <div id="hud">
+      <div class="hudbox" id="lvName">第1關</div>
+      <div class="hudbox" id="moveInfo">步數 0/2</div>
+      <div class="hudbox" id="xpInfo">⭐0 ✨0</div>
+    </div>
+    <div id="progressDots"></div>
+    <div id="canvasWrap">
+      <canvas id="gameCanvas"></canvas>
+      <div id="levelClear" class="overlay hidden">
+        <div class="pbox" id="clearBox">
+          <div id="clearTitle">關卡完成！</div>
+          <div id="clearStars">★★★</div>
+          <div id="clearInfo"></div>
+          <div id="clearXp"></div>
+          <button class="btn" id="btnNext">▶ 下一關</button>
+        </div>
+      </div>
+    </div>
+    <div id="controls">
+      <div id="dpad">
+        <button class="dbtn u" data-dir="up">▲</button>
+        <button class="dbtn l" data-dir="left">◀</button>
+        <button class="dbtn r" data-dir="right">▶</button>
+        <button class="dbtn d" data-dir="down">▼</button>
+      </div>
+      <div id="sideBtns">
+        <button class="btn small gold" id="btnUndo">↶ 倒退 (Z)</button>
+        <button class="btn small alt" id="btnRestart">⟳ 重來 (R)</button>
+        <button class="btn small" id="btnMusicGame">♪ 音樂：開</button>
+        <button class="btn small alt" id="btnHelpGame">❓ 說明</button>
+        <button class="btn small alt" id="btnQuit">🏠 回標題</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 結局畫面 ============ -->
+  <div id="screen-ending" class="screen">
+    <div id="endWrap"><canvas id="endCanvas" width="480" height="270"></canvas></div>
+    <div id="endOverlay">
+      <div class="pbox">
+        <div id="endText"></div>
+        <div id="endStats"></div>
+        <div id="endBtns">
+          <button class="btn small" id="btnAgain" style="width:auto">▶ 再玩一次</button>
+          <button class="btn small alt" id="btnEndHome" style="width:auto">🏠 返回標題</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 說明視窗 ============ -->
+  <div id="helpModal" class="modal hidden">
+    <div class="pbox" id="helpBox">
+      <h2>❓ 遊戲說明</h2>
+      <p>台北市各區的步行街被二手菸籠罩了！你是「反二手菸防衛隊」的菜鳥糾察員，任務是把迷失的<b>菸客</b>推進每區的<b>吸菸牢</b>（玻璃亭），讓城市恢復清新。</p>
+      <h3>🎮 操作</h3>
+      <p><span class="k">方向鍵</span> / <span class="k">WASD</span> / 手機滑動或按鍵移動<br>
+      <span class="k">Z</span> 倒退一步　<span class="k">R</span> 重玩本關</p>
+      <h3>📜 規則</h3>
+      <p>① 你只能「推」菸客，<b>不能拉</b>，一次只能推一個。<br>
+      ② 把所有菸客都推進吸菸牢即過關。<br>
+      ③ 已關進牢的菸客不能再推動，小心別把路堵死！<br>
+      ④ 步數越少星星越多：低於標準步數得 ★★★。</p>
+      <h3>🏅 目標</h3>
+      <p>通過全部 20 關、淨化台北 12 個行政區，成為傳說中的「無菸城市英雄」！</p>
+      <button class="btn" id="btnHelpClose">✔ 我知道了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   無菸城市 SMOKE-FREE CITY —— 可愛像素風解謎RPG
+   ===================================================================== */
+const $ = s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------------- 儲存 ---------------- */
+const SAVE_KEY='sfc_save_v1';
+let save={unlocked:0,stars:new Array(20).fill(0),xp:0};
+function loadSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&s.stars)save=Object.assign(save,s);}catch(e){}}
+function writeSave(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catch(e){}}
+loadSave();
+
+const TITLES=[[0,'菜鳥糾察員'],[100,'見習糾察員'],[250,'初級糾察員'],[450,'中級糾察員'],[700,'高級糾察員'],[1000,'資深糾察員'],[1300,'糾察隊隊長'],[1650,'分區指揮官'],[2000,'無菸大使'],[2400,'無菸城市英雄']];
+function curTitle(xp){let t=TITLES[0][1];for(const [n,name] of TITLES){if(xp>=n)t=name;}return t;}
+
+/* ---------------- 20個關卡資料 ---------------- */
+const LEVELS=[
+ {n:'西門町・電影街',d:'萬華區',par:2,map:[
+  "########",
+  "#......#",
+  "#.P.S.T#",
+  "#......#",
+  "########"]},
+ {n:'西門町・紅樓廣場',d:'萬華區',par:4,map:[
+  "########",
+  "#..P...#",
+  "#.SS...#",
+  "#.TT...#",
+  "#......#",
+  "########"]},
+ {n:'中山・南西商圈',d:'中山區',par:9,map:[
+  "########",
+  "#..P...#",
+  "#..S...#",
+  "#......#",
+  "#....T.#",
+  "########"]},
+ {n:'中山地下街',d:'中山區',par:12,map:[
+  "#########",
+  "#.......#",
+  "#.SSS...#",
+  "#.......#",
+  "#.TTT...#",
+  "#...P...#",
+  "#########"]},
+ {n:'公館・水源市集',d:'大安區',par:16,map:[
+  "#########",
+  "#...#...#",
+  "#.S.#.T.#",
+  "#...#...#",
+  "#.......#",
+  "#...P...#",
+  "#########"]},
+ {n:'信義計畫區步道',d:'信義區',par:45,map:[
+  "##########",
+  "#........#",
+  "#.S.S....#",
+  "#..##....#",
+  "#..##....#",
+  "#......TT#",
+  "#.......P#",
+  "##########"]},
+ {n:'威秀步行街',d:'信義區',par:8,map:[
+  "##########",
+  "#..T.....#",
+  "#..S.....#",
+  "#........#",
+  "#....S...#",
+  "#....T...#",
+  "#..P.....#",
+  "##########"]},
+ {n:'士林・文林路夜市街',d:'士林區',par:40,map:[
+  "###########",
+  "#....#....#",
+  "#.SS...TT.#",
+  "#....#....#",
+  "#.........#",
+  "#....P....#",
+  "###########"]},
+ {n:'北投公園步道',d:'北投區',par:26,map:[
+  "##########",
+  "#.T....S.#",
+  "#.######.#",
+  "#........#",
+  "#.######.#",
+  "#.S....T.#",
+  "#.P......#",
+  "##########"]},
+ {n:'溫泉博物館廣場',d:'北投區',par:22,map:[
+  "###########",
+  "#.........#",
+  "#.S.S.S...#",
+  "#.........#",
+  "#..T.T.T..#",
+  "#....P....#",
+  "###########"]},
+ {n:'內湖科學園區路',d:'內湖區',par:24,map:[
+  "##########",
+  "#..#.....#",
+  "#.S#..T..#",
+  "#..#.....#",
+  "#........#",
+  "#..S..T..#",
+  "#..P.....#",
+  "##########"]},
+ {n:'南港軟體園區步道',d:'南港區',par:44,map:[
+  "###########",
+  "#....#....#",
+  "#.SS.#.TT.#",
+  "#....#....#",
+  "#....#....#",
+  "#.........#",
+  "#....#....#",
+  "#....P....#",
+  "###########"]},
+ {n:'饒河街夜市',d:'松山區',par:12,map:[
+  "##########",
+  "#..T.....#",
+  "#..S..S..#",
+  "#.....T..#",
+  "#........#",
+  "#.S......#",
+  "#..T...P.#",
+  "##########"]},
+ {n:'松山車站前廣場',d:'松山區',par:40,map:[
+  "###########",
+  "#....#....#",
+  "#.SS.#.TT.#",
+  "#....#....#",
+  "#....#....#",
+  "#.........#",
+  "#....#....#",
+  "#..P.#....#",
+  "###########"]},
+ {n:'迪化街',d:'大同區',par:24,map:[
+  "##########",
+  "#........#",
+  "#.SS..TT.#",
+  "#..####..#",
+  "#........#",
+  "#........#",
+  "#...P....#",
+  "##########"]},
+ {n:'寧夏夜市',d:'大同區',par:20,map:[
+  "###########",
+  "#..S...T..#",
+  "#.#######.#",
+  "#.........#",
+  "#.#######.#",
+  "#..T...S..#",
+  "#....P....#",
+  "###########"]},
+ {n:'貓空茶路',d:'文山區',par:32,map:[
+  "##########",
+  "#........#",
+  "#.#SS#..T#",
+  "#.#..#...#",
+  "#.#..#..T#",
+  "#........#",
+  "#.P......#",
+  "##########"]},
+ {n:'台北車站前',d:'中正區',par:28,map:[
+  "###########",
+  "#....#....#",
+  "#.T.....S.#",
+  "#....#....#",
+  "##.#####.##",
+  "#.........#",
+  "#.S.....T.#",
+  "#....P....#",
+  "###########"]},
+ {n:'西寧南路',d:'中正區',par:60,map:[
+  "############",
+  "#..........#",
+  "#.SS....TT.#",
+  "#..........#",
+  "#....##....#",
+  "#....##....#",
+  "#..........#",
+  "#.TT....SS.#",
+  "#..........#",
+  "#.....P....#",
+  "############"]},
+ {n:'市民廣場・最終決戰',d:'信義區',par:65,map:[
+  "############",
+  "#..........#",
+  "#.SS....TT.#",
+  "#..........#",
+  "#...####...#",
+  "#...####...#",
+  "#..........#",
+  "#.TT....SS.#",
+  "#..........#",
+  "#.....P....#",
+  "############"]}
+];
+const PALETTES=[
+ {wall:'#c96f4a',wallTop:'#e39068',win:'#ffe9a8',floor:'#f2e3c2',floor2:'#e8d5ac',mat:'#5c5148'},
+ {wall:'#7a8bd6',wallTop:'#93a3e8',win:'#ffe9a8',floor:'#e9ecf7',floor2:'#dcdff0',mat:'#4c5570'},
+ {wall:'#d67ba5',wallTop:'#ec93bb',win:'#fff3c9',floor:'#fbe9f0',floor2:'#f0dbe5',mat:'#6d4a5c'},
+ {wall:'#5aa877',wallTop:'#74c292',win:'#ffe9a8',floor:'#eaf5e8',floor2:'#d9ebd6',mat:'#3f5d4c'},
+ {wall:'#a583d6',wallTop:'#bd9dea',win:'#ffe9a8',floor:'#f0eaf8',floor2:'#e2d9ef',mat:'#54466d'},
+ {wall:'#d6a95b',wallTop:'#eec274',win:'#fff6d6',floor:'#f9f0dd',floor2:'#eee0c2',mat:'#6d5b3a'}
+];
+
+/* ---------------- 劇情文本 ---------------- */
+const STORIES={
+ intro:{chap:'序章・防衛隊最後的希望',scene:'smoky',music:'story',slides:[
+  {sp:'旁白',tx:'2026年，台北市——\n曾經清新的商業步行街，如今被二手菸徹底籠罩。西門町的霓虹燈蒙上一層灰霧，空氣指數跌到史上最低……'},
+  {sp:'旁白',tx:'咳嗽聲與眼淚佈滿街頭，市民不敢出門，小孩戴著三層口罩上學。這座城市，正在失去笑容。'},
+  {sp:'老菸隊長',tx:'「咳、咳……」重病床上，反二手菸防衛隊的老菸隊長握緊你的手：\n「隊友全都嗆傷了……無菸城市的未來，就拜託你了！」'},
+  {sp:'老菸隊長',tx:'「聽好，菜鳥！菸客是推不动的倔脾氣——你只能『推』他們，不能『拉』。把他們全部推進各區的吸菸牢，城市就能重獲清新！」'},
+  {sp:'旁白',tx:'你戴上綠色臂章，深吸一口渾濁的空氣。\n任務目標：台北市 12 個行政區、20 條商業步行街。\n\n—— 任務開始！——'}
+ ]},
+ mid1:{chap:'第一章・清新的萌芽',scene:'clean',music:'story',slides:[
+  {sp:'旁白',tx:'萬華、中山、大安區的空氣明顯變好了！西門町的招牌重新閃亮，街角的貓咪慵懶地曬著太陽，市民終於敢打開窗戶。'},
+  {sp:'豆花攤老闆',tx:'「糾察員，辛苦啦！這碗豆花我請——自從菸客都進了吸菸牢，客人願意坐下來吃了，生意好得不得了！」'},
+  {sp:'旁白',tx:'但防衛隊的情報網傳來消息：信義計畫區與士林夜市的菸客群更加龐大，背後似乎有個神祕組織「菸霧軍團」在暗中操控一切……'}
+ ]},
+ mid2:{chap:'第二章・菸霧軍團的陰影',scene:'push',music:'story',slides:[
+  {sp:'旁白',tx:'任務進行到一半！北投的溫泉白煙、內湖的科學園區、松山的夜市……一座座吸菸牢被填滿，你的階級也節節上升。'},
+  {sp:'情報員小晴',tx:'「隊長！查到了！菸霧軍團的首領叫『黑菸老大』——他揚言要在市民廣場釋放『終極二手菸』，把整個台北蓋進灰霧裡！」'},
+  {sp:'旁白',tx:'決戰的腳步近了。你擦亮臂章，把推菸客的手勢練得更俐落。剩下的五個區，一步都不能退！'}
+ ]},
+ mid3:{chap:'第三章・黑菸老大現身',scene:'boss',music:'story',slides:[
+  {sp:'黑菸老大',tx:'「哼哼哼……了不起啊，防衛隊的小菜鳥。」一團濃得化不開的黑煙中，黑菸老大叼著大雪茄現身：「但你以為這樣就贏了嗎？」'},
+  {sp:'黑菸老大',tx:'「我已經在大同、文山、中正布下最後的菸客大軍！只要我打個響指，全台北都會嗆得睜不開眼——無菸城市？作夢！」'},
+  {sp:'旁白',tx:'你深吸一口氣——空氣裡還有一點菸味，但更多的是花香。\n你想起了隊長、想起豆花攤老闆、想起重新打開的窗戶。'},
+  {sp:'你',tx:'「抽菸不是罪，但讓整座城市吸二手菸就是。\n黑菸老大，最後五區——我接下了！」\n\n—— 最終決戰，開始！——'}
+ ]},
+ outro:{chap:'終章・無菸城市',scene:'party',music:'story',slides:[
+  {sp:'旁白',tx:'市民廣場上，黑菸老大的最後一根雪茄被穩穩推進吸菸牢。「咔噠」一聲，玻璃門關上——灰霧散了。'},
+  {sp:'黑菸老大',tx:'「原來……新鮮空氣是這種味道啊。」黑菸老大望著澄黃的夕陽，眼角閃著淚光，默默許下戒菸的誓言，轉身走入晚霞。'},
+  {sp:'旁白',tx:'台北市 20 條步行街，全數淨化！西門町的霓虹再次閃亮、貓空的茶香蓋過菸味、夜市的珍珠奶茶只剩下甜的氣氛。'},
+  {sp:'老菸隊長',tx:'「你做到了……」康復出院的老菸隊長在萬人歡呼中，為你戴上金色的「無菸勳章」：\n「從今天起，你就是真正的——無菸城市英雄！」'},
+  {sp:'旁白',tx:'從此，每個呼吸的人都帶著笑容。\n而那位綠色臂章糾察員的傳說，被街上每個孩子傳頌著……\n\n—— THE END ——'}
+ ]}
+};
+const STORY_AFTER={4:'mid1',9:'mid2',14:'mid3'};
+
+/* =====================================================================
+   音樂引擎（Web Audio 晶片音樂）
+   ===================================================================== */
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+const TRACKS={
+ title:{tempo:112,drum:true,
+  mel:[76,79,81,84,86,84,81,79, 81,84,88,84,81,79,76,0, 74,77,81,84,81,77,74,77, 79,83,86,83,79,76,72,0],
+  bass:[48,0,55,0,48,0,55,0, 41,0,48,0,43,0,50,0, 45,0,52,0,45,0,53,0, 55,0,62,0,43,0,48,0]},
+ game:{tempo:146,drum:true,
+  mel:[72,76,79,84,79,76,79,81, 77,81,84,81,79,76,74,72, 74,77,81,84,81,77,74,77, 79,84,86,84,79,0,72,0],
+  bass:[48,0,48,55,0,48,0,55, 53,0,53,60,0,53,0,55, 50,0,50,57,0,50,0,57, 55,0,55,62,0,43,48,55]},
+ story:{tempo:76,drum:false,
+  mel:[64,67,71,72,71,67,64,0, 62,65,69,72,69,65,62,0, 60,64,67,71,72,71,67,64, 67,71,72,76,72,71,67,0],
+  bass:[40,0,0,0,43,0,0,0, 38,0,0,0,41,0,0,0, 36,0,0,0,40,0,0,0, 43,0,0,0,36,0,43,0]},
+ end:{tempo:124,drum:true,
+  mel:[72,72,76,79,84,79,76,79, 81,81,84,88,86,84,81,79, 84,88,91,88,84,81,79,81, 84,86,88,91,96,0,0,0],
+  bass:[48,48,55,48,0,48,55,0, 45,45,52,45,0,43,48,0, 48,48,55,48,41,41,48,41, 43,43,50,43,48,55,60,67]}
+};
+const A={
+ ctx:null,master:null,enabled:true,track:null,step:0,nextT:0,timer:null,noiseBuf:null,
+ init(){
+   if(this.ctx)return;
+   try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}
+   this.master=this.ctx.createGain();this.master.gain.value=0.5;this.master.connect(this.ctx.destination);
+   const len=this.ctx.sampleRate*0.4,buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate),d=buf.getChannelData(0);
+   for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+   this.noiseBuf=buf;
+ },
+ resume(){this.init();if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();},
+ tone(freq,t,dur,type,vol){
+   if(!this.ctx||!this.enabled)return;
+   const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+   o.type=type;o.frequency.setValueAtTime(freq,t);
+   g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol,t+0.012);
+   g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+   o.connect(g);g.connect(this.master);o.start(t);o.stop(t+dur+0.05);
+ },
+ noiseHit(t,dur,vol){
+   if(!this.ctx||!this.enabled||!this.noiseBuf)return;
+   const s=this.ctx.createBufferSource(),g=this.ctx.createGain();
+   s.buffer=this.noiseBuf;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+   s.connect(g);g.connect(this.master);s.start(t);s.stop(t+dur+0.02);
+ },
+ kick(t){
+   if(!this.ctx||!this.enabled)return;
+   const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+   o.type='sine';o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(45,t+0.12);
+   g.gain.setValueAtTime(0.35,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.14);
+   o.connect(g);g.connect(this.master);o.start(t);o.stop(t+0.16);
+ },
+ sched(){
+   if(!this.ctx||!this.track)return;
+   const tr=TRACKS[this.track],sd=60/tr.tempo/2;
+   while(this.nextT<this.ctx.currentTime+0.15){
+     const i=this.step,t=this.nextT;
+     const m=tr.mel[i]; if(m)this.tone(mtof(m),t,sd*0.92,'square',0.09);
+     const b=tr.bass[i]; if(b)this.tone(mtof(b),t,sd*0.95,'triangle',0.22);
+     if(tr.drum){
+       if(i%8===0)this.kick(t);
+       if(i%8===4)this.noiseHit(t,0.09,0.10);
+       if(i%2===0)this.noiseHit(t,0.025,0.022);
+     }
+     this.nextT+=sd;this.step=(this.step+1)%32;
+   }
+ },
+ play(name){
+   this.init();if(!this.ctx)return;this.resume();
+   if(this.track===name)return;
+   this.stop();this.track=name;this.step=0;this.nextT=this.ctx.currentTime+0.06;
+   this.timer=setInterval(()=>this.sched(),25);
+ },
+ stop(){if(this.timer){clearInterval(this.timer);this.timer=null;}this.track=null;},
+ toggle(){this.enabled=!this.enabled;if(!this.enabled)this.stop();else if(this.wantTrack)this.play(this.wantTrack);return this.enabled;},
+ setWant(n){this.wantTrack=n;}
+};
+A.wantTrack='title';
+const playMusic=n=>{A.setWant(n);if(A.enabled)A.play(n);};
+const SFX={
+ push(){A.init();if(!A.ctx||!A.enabled)return;const t=A.ctx.currentTime;A.tone(196,t,0.06,'square',0.12);A.tone(262,t+0.04,0.06,'square',0.10);},
+ deny(){A.init();if(!A.ctx||!A.enabled)return;const t=A.ctx.currentTime;A.tone(110,t,0.13,'sawtooth',0.09);},
+ capture(){A.init();if(!A.ctx||!A.enabled)return;const t=A.ctx.currentTime;[72,76,79,84].forEach((m,i)=>A.tone(mtof(m),t+i*0.07,0.12,'square',0.13));},
+ clear(){A.init();if(!A.ctx||!A.enabled)return;const t=A.ctx.currentTime;[72,76,79,84,88,96].forEach((m,i)=>{A.tone(mtof(m),t+i*0.1,0.2,'square',0.13);A.tone(mtof(m-12),t+i*0.1,0.2,'triangle',0.18);});},
+ click(){A.init();if(!A.ctx||!A.enabled)return;A.tone(660,A.ctx.currentTime,0.04,'square',0.08);},
+ step(){A.init();if(!A.ctx||!A.enabled)return;A.tone(140,A.ctx.currentTime,0.03,'triangle',0.05);}
+};
+
+/* =====================================================================
+   像素精靈
+   ===================================================================== */
+const SPR_HERO={w:12,h:16,colors:{G:'#41b45c',g:'#2f8a45',S:'#ffd9b3',K:'#33261c',W:'#ffffff',B:'#3b6fd4'},rows:[
+"....GGGG....",
+"...GGGGGG...",
+"..GGGGGGGG..",
+"..gggggggg..",
+"..SSSSSSSS..",
+"..SKSSSSKS..",
+"..SSSSSSSS..",
+"..SS.KK.SS..",
+"...SSSSSS...",
+"..GWWWWWWG..",
+".GGWWWWWWGG.",
+".GGWWWWWWGG.",
+"..GWWWWWWG..",
+"...BB..BB...",
+"...BB..BB...",
+"...KK..KK..."]};
+const SPR_SMOKER={w:12,h:16,colors:{H:'#8a8f98',S:'#ffd9b3',X:'#5a4632',Y:'#9aa0a8',y:'#6f757d',D:'#4a4f57',K:'#2f333a',m:'#b06a5a',W:'#ffffff',O:'#ff7a2f'},rows:[
+"....HHHH....",
+"...HHHHHH...",
+"..HHHHHHHH..",
+"..SSSSSSSS..",
+"..SXSSSSXS..",
+"..SSSSSSSS..",
+"..SSSmmS.WO.",
+"...SSSSSS...",
+"..YYYYYYYY..",
+".YYYYYYYYYY.",
+".YYYyyyyYYY.",
+".YYYYYYYYYY.",
+"..YYYYYYYY..",
+"...DD..DD...",
+"...DD..DD...",
+"...KK..KK..."]};
+const SPR_CIT={w:12,h:16,colors:{H:'#c98b4a',S:'#ffd9b3',X:'#33261c',Y:'#e86f6f',y:'#c05555',D:'#4a4f57',K:'#2f333a',m:'#d98878'},rows:[
+"....HHHH....",
+"...HHHHHH...",
+"..HHHHHHHH..",
+"..SSSSSSSS..",
+"..SXSSSSXS..",
+"..SSSSSSSS..",
+"..SSSmmSSS..",
+"...SSSSSS...",
+"..YYYYYYYY..",
+".YYYYYYYYYY.",
+".YYYyyyyYYY.",
+".YYYYYYYYYY.",
+"..YYYYYYYY..",
+"...DD..DD...",
+"...DD..DD...",
+"...KK..KK..."]};
+
+function drawSprite(g,spr,x,y,s,flip,ov){
+  const cols=spr.colors;
+  for(let r=0;r<spr.h;r++){
+    const row=spr.rows[r];
+    for(let c=0;c<spr.w;c++){
+      const ch=row[c];if(ch==='.')continue;
+      g.fillStyle=(ov&&ov[ch])||cols[ch];
+      const px=flip?(spr.w-1-c):c;
+      g.fillRect(Math.round(x+px*s),Math.round(y+r*s),s,s);
+    }
+  }
+}
+
+/* =====================================================================
+   場景繪製（標題／劇情／結局共用）
+   ===================================================================== */
+function hash(n){n=(n<<13)^n;return ((n*(n*n*15731+789221)+1376312589)&0x7fffffff)/2147483647;}
+const sceneFX={fw:[],conf:[],t0:performance.now()/1000};
+
+function drawT101(g,x,baseY,col,col2){
+  // 台北101 節節高昇剪影
+  let w=40,y=baseY;
+  for(let i=0;i<8;i++){
+    const ww=Math.max(10,w-i*3.4),hh=13;
+    g.fillStyle=col;g.fillRect(x-ww/2,y-hh,ww,hh);
+    g.fillStyle=col2;g.fillRect(x-ww/2-3,y-hh,3,hh);g.fillRect(x+ww/2,y-hh,3,hh);
+    y-=hh-1;
+  }
+  g.fillStyle=col;g.fillRect(x-1,y-22,2,22);
+}
+function drawCloud(g,x,y,s,col){
+  g.fillStyle=col;
+  g.fillRect(x,y+4*s,20*s,4*s);g.fillRect(x+3*s,y,6*s,4*s);g.fillRect(x+10*s,y+1*s,7*s,3*s);
+}
+function sceneBase(g,W,H,t,opt){
+  const sky=g.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,opt.sky[0]);sky.addColorStop(1,opt.sky[1]);
+  g.fillStyle=sky;g.fillRect(0,0,W,H);
+  // 太陽/月亮
+  if(opt.sun){g.fillStyle=opt.sun;g.fillRect(W*0.14,30,20,20);g.fillRect(W*0.14-4,34,28,12);g.fillRect(W*0.14+2,26,16,28);}
+  // 雲
+  for(let i=0;i<4;i++){
+    const cx=((t*(6+i*3)+i*150)%(W+120))-60, cy=18+i*22;
+    drawCloud(g,cx,cy,1+i%2,opt.cloud||'rgba(255,255,255,.85)');
+  }
+  const hz=Math.floor(H*0.62);
+  // 遠景大樓
+  g.fillStyle=opt.bldFar;
+  for(let i=0;i<12;i++){
+    const bx=i*44-10,bw=30+hash(i*7)*14,bh=40+hash(i*13)*60;
+    g.fillRect(bx,hz-bh,bw,bh);
+  }
+  drawT101(g,W*0.80,hz,opt.t101||opt.bldFar,opt.t101b||opt.bldFar);
+  // 近景大樓＋窗
+  for(let i=0;i<7;i++){
+    const bx=i*78-20,bw=58,bh=52+hash(i*31+5)*40,by=hz-bh;
+    g.fillStyle=opt.bld[i%opt.bld.length];g.fillRect(bx,by,bw,bh);
+    g.fillStyle='rgba(0,0,0,.22)';g.fillRect(bx,by,bw,5);
+    for(let wy=by+10;wy<hz-8;wy+=12){
+      for(let wx=bx+6;wx<bx+bw-8;wx+=13){
+        g.fillStyle=hash(wx*17+wy*29)>0.45?opt.winLit:'rgba(40,40,70,.55)';
+        g.fillRect(wx,wy,7,7);
+      }
+    }
+  }
+  // 街道
+  g.fillStyle=opt.ground;g.fillRect(0,hz,W,H-hz);
+  g.fillStyle=opt.side;g.fillRect(0,hz,W,10);
+  g.fillStyle='rgba(255,255,255,.4)';
+  for(let dx=8;dx<W;dx+=42)g.fillRect(dx,hz+Math.floor((H-hz)*0.55),18,3);
+}
+function smokePuff(g,x,y,t,seed,n,col){
+  for(let i=0;i<n;i++){
+    const p=(t*0.5+seed+i*0.37)%1.4;
+    const sx=x+Math.sin((p*7+seed*10+i))*7, sy=y-p*30;
+    const a=Math.max(0,1-p/1.4)*0.65, sz=3+Math.floor(p*6);
+    g.fillStyle=col||`rgba(180,185,195,${a})`;
+    g.globalAlpha=Math.max(0,1-p/1.4)*0.7;
+    g.fillRect(sx,sy,sz,sz);
+    g.globalAlpha=1;
+  }
+}
+function drawBoothBig(g,x,y,s){
+  // 大型吸菸牢（場景用）
+  g.fillStyle='#39424e';g.fillRect(x,y+6*s,14*s,12*s);
+  g.fillStyle='#c0392b';g.fillRect(x,y,14*s,6*s);
+  g.fillStyle='#ffffff';g.fillRect(x+3*s,y+1.5*s,6*s,1.5*s);g.fillStyle='#ff7a2f';g.fillRect(x+9*s,y+1.5*s,1.6*s,1.5*s);
+  g.fillStyle='rgba(150,215,255,.45)';g.fillRect(x+1.5*s,y+7*s,11*s,9*s);
+  g.fillStyle='#22303e';
+  for(let i=0;i<3;i++)g.fillRect(x+(2.5+i*3.5)*s,y+7*s,1*s,9*s);
+  g.strokeStyle='#22303e';
+}
+function spawnFirework(g,W,H){
+  const x=40+Math.random()*(W-80),y=30+Math.random()*70;
+  const col=['#ffd23c','#ff6b6b','#6bd4ff','#8aff9e','#ff9ef2','#ffffff'][Math.floor(Math.random()*6)];
+  for(let i=0;i<26;i++){
+    const a=Math.PI*2*i/26,sp=40+Math.random()*45;
+    sceneFX.fw.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,col});
+  }
+}
+function updateFX(g,dt,W,H){
+  if(Math.random()<dt*1.4)spawnFirework(g,W,H);
+  sceneFX.fw=sceneFX.fw.filter(p=>p.life>0);
+  for(const p of sceneFX.fw){
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=46*dt;p.life-=dt*0.85;
+    g.globalAlpha=Math.max(0,p.life);g.fillStyle=p.col;
+    g.fillRect(p.x,p.y,3,3);g.globalAlpha=1;
+  }
+  if(sceneFX.conf.length<90&&Math.random()<dt*30)
+    sceneFX.conf.push({x:Math.random()*W,y:-6,vy:18+Math.random()*26,vx:Math.sin(Math.random()*9)*10,col:['#ff6b6b','#ffd23c','#6bd4ff','#8aff9e','#ff9ef2'][Math.floor(Math.random()*5)],s:2+Math.floor(Math.random()*3)});
+  sceneFX.conf=sceneFX.conf.filter(p=>p.y<H+8);
+  for(const p of sceneFX.conf){p.x+=p.vx*dt;p.y+=p.vy*dt;g.fillStyle=p.col;g.fillRect(p.x,p.y,p.s,p.s);}
+}
+
+const SCENE_OPTS={
+ day:{sky:['#7ec8f7','#cfeaff'],sun:'#ffd23c',cloud:'rgba(255,255,255,.9)',bldFar:'#9db4d6',bld:['#e8a06a','#d67ba5','#7a8bd6','#5aa877'],winLit:'#ffe9a8',ground:'#8d93a3',side:'#b9bec9',t101:'#8fa7cc',t101b:'#7c93b8'},
+ smoky:{sky:['#6b6f7d','#a7a29b'],cloud:'rgba(200,200,200,.5)',bldFar:'#5c6070',bld:['#8a7d74','#7d7480','#6d7480','#757d74'],winLit:'#d8c98a',ground:'#5d6068',side:'#7b7f88',t101:'#59607a',t101b:'#4a5168'},
+ dusk:{sky:['#ff9d5c','#ffd9a0'],sun:'#fff2b0',cloud:'rgba(255,230,200,.8)',bldFar:'#a07a8c',bld:['#c97b5a','#b06a86','#7a6aa0','#6a8ab0'],winLit:'#ffe9a8',ground:'#7a6a78',side:'#a08a94',t101:'#9a7a90',t101b:'#87687e'},
+ night:{sky:['#1b1430','#3a2352'],cloud:'rgba(120,100,160,.4)',bldFar:'#241b3d',bld:['#33285a','#3d2a52','#28334e','#2e4038'],winLit:'#ffd23c',ground:'#241f33',side:'#3a3352',t101:'#2c2350',t101b:'#221a40'}
+};
+
+function drawScene(g,W,H,type,t){
+  const gy=Math.floor(H*0.62);
+  if(type==='smoky'){
+    sceneBase(g,W,H,t,SCENE_OPTS.smoky);
+    const foot=H-42;
+    drawSprite(g,SPR_HERO,W*0.16,foot-48,3,false);
+    drawSprite(g,SPR_SMOKER,W*0.46,foot-48,3,true);smokePuff(g,W*0.46+30,foot-52,t,1,4);
+    drawSprite(g,SPR_SMOKER,W*0.62,foot-48,3,false);smokePuff(g,W*0.62+8,foot-52,t,2,4);
+    drawSprite(g,SPR_SMOKER,W*0.78,foot-48,3,true);smokePuff(g,W*0.78+30,foot-52,t,3,4);
+    g.fillStyle='rgba(125,128,138,.28)';g.fillRect(0,0,W,H);
+    for(let i=0;i<5;i++){const sx=((t*12+i*100)%(W+80))-40,sy=60+i*32;g.fillStyle='rgba(150,152,160,.20)';g.fillRect(sx,sy,46,12);g.fillRect(sx+10,sy-6,26,10);}
+  }else if(type==='clean'){
+    sceneBase(g,W,H,t,SCENE_OPTS.day);
+    const foot=H-42;
+    // 花
+    for(let i=0;i<9;i++){const fx=20+i*52;g.fillStyle='#3fae5a';g.fillRect(fx,foot+6,2,8);g.fillStyle=['#ff6b9d','#ffd23c','#ff8a5c','#c77dff'][i%4];g.fillRect(fx-3,foot+2,8,6);}
+    drawSprite(g,SPR_HERO,W*0.20,foot-48+Math.round(Math.sin(t*3)*2),3,false);
+    drawSprite(g,SPR_CIT,W*0.42,foot-48,3,true,{Y:'#e86f6f',y:'#c05555',H:'#c98b4a'});
+    drawSprite(g,SPR_CIT,W*0.58,foot-48+Math.round(Math.sin(t*3+2)*2),3,false,{Y:'#5aa8d6',y:'#3f7fa8',H:'#5a4632'});
+    drawSprite(g,SPR_CIT,W*0.76,foot-48,3,true,{Y:'#e8c33c',y:'#b8962a',H:'#8a5a32'});
+    drawBoothBig(g,W*0.87,foot-58,2.4);
+  }else if(type==='push'){
+    sceneBase(g,W,H,t,SCENE_OPTS.day);
+    const foot=H-42, wob=Math.round(Math.sin(t*6)*2);
+    drawBoothBig(g,W*0.68,foot-58,3);
+    drawSprite(g,SPR_SMOKER,W*0.42+wob*2,foot-48,3,false);smokePuff(g,W*0.42+34,foot-52,t,5,3);
+    drawSprite(g,SPR_HERO,W*0.42-40+wob*2,foot-48,3,false);
+    // 火花
+    for(let i=0;i<6;i++){const a=t*4+i*1.05;g.fillStyle=i%2?'#ffd23c':'#ffffff';g.fillRect(W*0.5+Math.cos(a)*50,foot-30+Math.sin(a*1.3)*24,3,3);}
+    drawSprite(g,SPR_CIT,W*0.14,foot-48,3,false,{Y:'#c77dff',y:'#9a5ac9',H:'#3a2a44'});
+  }else if(type==='boss'){
+    sceneBase(g,W,H,t,SCENE_OPTS.night);
+    const foot=H-42;
+    g.fillStyle='rgba(90,30,120,.18)';g.fillRect(0,0,W,H);
+    // 黑菸老大（放大菸客＋黑帽＋披風）
+    const bx=W*0.60,by=foot-16*4.2;
+    g.fillStyle='#151021';g.fillRect(bx-16,by+18,26,16*4.2-18); // 披風
+    drawSprite(g,SPR_SMOKER,bx,by,4.2,true,{H:'#1a1a24',Y:'#2b2b38',y:'#20202b',D:'#141419',X:'#ff3b30',m:'#aa3333',S:'#d8b18c',W:'#e8e8e8',O:'#ff5a1f'});
+    g.fillStyle='#0d0d14';g.fillRect(bx-2,by-22,52,20);g.fillRect(bx-12,by-6,72,8); // 高帽
+    g.fillStyle='#c0392b';g.fillRect(bx-2,by-10,52,5);
+    smokePuff(g,bx+16,by-26,t,7,7,'rgba(60,50,80,.7)');
+    for(let i=0;i<6;i++){const sx=((t*20+i*90)%(W+80))-40;g.fillStyle='rgba(70,55,95,.35)';g.fillRect(sx,40+i*28,52,10);}
+    drawSprite(g,SPR_HERO,W*0.20,foot-48,3,false);
+    if(Math.sin(t*7)>0.9){g.fillStyle='rgba(255,80,80,.12)';g.fillRect(0,0,W,H);}
+  }else if(type==='party'){ // 結局慶典
+    sceneBase(g,W,H,t,SCENE_OPTS.dusk);
+    const foot=H-42;
+    updateFX(g,1/60,W,H);
+    drawBoothBig(g,W*0.85,foot-58,2.4);
+    // 英雄＋獎盃
+    const hy=foot-48+Math.round(Math.sin(t*4)*3);
+    drawSprite(g,SPR_HERO,W*0.46,hy,3,false);
+    g.fillStyle='#ffd23c';g.fillRect(W*0.46+12,hy-20,12,14);g.fillRect(W*0.46+8,hy-24,20,5);g.fillRect(W*0.46+14,hy-6,8,6);g.fillRect(W*0.46+10,hy-2,16,4);
+    g.fillStyle='#fff';g.fillRect(W*0.46+16,hy-18,4,8);
+    drawSprite(g,SPR_CIT,W*0.20,foot-48+Math.round(Math.sin(t*4+1)*4),3,false,{Y:'#e86f6f',y:'#c05555',H:'#c98b4a'});
+    drawSprite(g,SPR_CIT,W*0.70,foot-48+Math.round(Math.sin(t*4+2.4)*4),3,true,{Y:'#5aa8d6',y:'#3f7fa8',H:'#5a4632'});
+    drawSprite(g,SPR_SMOKER,W*0.32,foot-48,3,true,{H:'#c9a06a',Y:'#d8d8e0',y:'#b0b0bb',W:'#ffffff',O:'#ff7a2f'}); // 改過自新的前菸客
+  }
+}
+
+/* =====================================================================
+   遊戲引擎
+   ===================================================================== */
+const TS=48;
+const gcv=$('#gameCanvas'),gx=gcv.getContext('2d');
+const st={lvl:0,grid:null,cols:0,rows:0,smokers:[],targets:[],player:{x:0,y:0,px:0,py:0,face:1},
+ moves:0,undo:[],won:false,pal:PALETTES[0],smokeP:[],sparkP:[],animLock:false};
+
+function parseLevel(idx){
+  const lv=LEVELS[idx];st.lvl=idx;st.pal=PALETTES[idx%PALETTES.length];
+  st.rows=lv.map.length;st.cols=lv.map[0].length;
+  st.grid=[];st.smokers=[];st.targets=[];st.undo=[];st.moves=0;st.won=false;st.smokeP=[];st.sparkP=[];
+  for(let y=0;y<st.rows;y++){
+    const row=[];
+    for(let x=0;x<st.cols;x++){
+      const ch=lv.map[y][x];
+      if(ch==='#')row.push(1);
+      else{
+        row.push(0);
+        if(ch==='T')st.targets.push({x,y});
+        else if(ch==='S')st.smokers.push({x,y,cap:false,ax:x*TS,ay:y*TS});
+        else if(ch==='P')st.player={x,y,px:x*TS,py:y*TS,face:1};
+      }
+    }
+    st.grid.push(row);
+  }
+  gcv.width=st.cols*TS;gcv.height=st.rows*TS;
+  gx.imageSmoothingEnabled=false;
+  updateHUD();buildDots();
+}
+function isWall(x,y){return x<0||y<0||x>=st.cols||y>=st.rows||st.grid[y][x]===1;}
+function smokerAt(x,y){return st.smokers.find(s=>s.x===x&&s.y===y);}
+function targetAt(x,y){return st.targets.some(t=>t.x===x&&t.y===y);}
+
+function pushUndo(){st.undo.push({p:{x:st.player.x,y:st.player.y},s:st.smokers.map(s=>({x:s.x,y:s.y,cap:s.cap})),m:st.moves});if(st.undo.length>300)st.undo.shift();}
+function doUndo(){
+  if(!st.undo.length||st.won)return;
+  const u=st.undo.pop();
+  st.player.x=u.p.x;st.player.y=u.p.y;
+  u.s.forEach((d,i)=>{st.smokers[i].x=d.x;st.smokers[i].y=d.y;st.smokers[i].cap=d.cap;});
+  st.moves=u.m;SFX.click();updateHUD();
+}
+function tryMove(dx,dy){
+  if(st.won||st.animLock)return;
+  const nx=st.player.x+dx,ny=st.player.y+dy;
+  if(dx!==0)st.player.face=dx>0?1:-1;
+  if(isWall(nx,ny)){SFX.deny();return;}
+  const sm=smokerAt(nx,ny);
+  if(sm){
+    if(sm.cap){SFX.deny();return;}
+    const sx=nx+dx,sy=ny+dy;
+    if(isWall(sx,sy)||smokerAt(sx,sy)){SFX.deny();return;}
+    pushUndo();
+    sm.x=sx;sm.y=sy;SFX.push();
+    if(targetAt(sx,sy)){
+      sm.cap=true;SFX.capture();
+      for(let i=0;i<16;i++)st.sparkP.push({x:sx*TS+TS/2,y:sy*TS+TS/2,vx:(Math.random()-0.5)*140,vy:-60-Math.random()*90,life:0.9,col:i%2?'#ffd23c':'#ffffff'});
+    }
+  }else pushUndo();
+  st.player.x=nx;st.player.y=ny;st.moves++;SFX.step();updateHUD();
+  if(st.smokers.every(s=>s.cap))winLevel();
+}
+function winLevel(){
+  if(st.won)return;st.won=true;SFX.clear();
+  const par=LEVELS[st.lvl].par;
+  const stars=st.moves<=par?3:(st.moves<=Math.ceil(par*1.3)?2:1);
+  const gained=40+stars*20;
+  save.stars[st.lvl]=Math.max(save.stars[st.lvl],stars);
+  save.xp+=gained;save.unlocked=Math.max(save.unlocked,Math.min(st.lvl+1,19));
+  writeSave();
+  setTimeout(()=>showClear(stars,gained),950);
+}
+function showClear(stars,gained){
+  $('#clearTitle').textContent=st.lvl===19?'🎉 全部關卡完成！':'關卡完成！';
+  $('#clearStars').textContent='★★★'.slice(0,stars)+'☆☆☆'.slice(0,3-stars);
+  $('#clearInfo').innerHTML=`「${LEVELS[st.lvl].d}・${LEVELS[st.lvl].n}」淨化成功！<br>用了 ${st.moves} 步（標準 ${LEVELS[st.lvl].par} 步）<br>目前頭銜：<b>${curTitle(save.xp)}</b>`;
+  $('#clearXp').textContent=`✨ 獲得 ${gained} 點清新經驗值（總計 ${save.xp}）`;
+  $('#btnNext').textContent=st.lvl===19?'▶ 迎接結局':'▶ 下一關';
+  $('#levelClear').classList.remove('hidden');
+  buildDots();
+}
+function nextLevel(){
+  $('#levelClear').classList.add('hidden');
+  const sk=STORY_AFTER[st.lvl];
+  const n=st.lvl+1;
+  if(st.lvl===19){playStory('outro',showEnding);return;}
+  if(sk)playStory(sk,()=>startLevel(n));
+  else startLevel(n);
+}
+function startLevel(i){
+  if(i>=20){showEnding();return;}
+  parseLevel(i);
+  showScreen('screen-game');
+  playMusic('game');
+}
+
+/* ---------------- 遊戲畫面繪製 ---------------- */
+function tileFloor(g,x,y){
+  const p=st.pal;
+  g.fillStyle=((x+y)%2===0)?p.floor:p.floor2;
+  g.fillRect(x*TS,y*TS,TS,TS);
+  g.fillStyle='rgba(0,0,0,.06)';
+  const h1=hash(x*73+y*151);
+  if(h1>0.7)g.fillRect(x*TS+8+h1*20,y*TS+10+(1-h1)*26,3,3);
+  if(h1<0.2)g.fillRect(x*TS+30,y*TS+34,2,2);
+}
+function tileWall(g,x,y){
+  const p=st.pal;
+  g.fillStyle=p.wall;g.fillRect(x*TS,y*TS,TS,TS);
+  g.fillStyle=p.wallTop;g.fillRect(x*TS,y*TS,TS,6);
+  g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x*TS,y*TS+TS-5,TS,5);
+  // 窗戶
+  const h=hash(x*31+y*57);
+  for(let i=0;i<2;i++){
+    g.fillStyle=h>(0.25+i*0.3)?p.win:'rgba(40,44,70,.7)';
+    g.fillRect(x*TS+7+i*22,y*TS+14,14,12);
+    g.fillStyle='rgba(0,0,0,.3)';
+    g.fillRect(x*TS+7+i*22,y*TS+14,14,2);g.fillRect(x*TS+13+i*22,y*TS+14,2,12);
+  }
+  g.fillStyle='rgba(0,0,0,.18)';g.fillRect(x*TS,y*TS,3,TS);g.fillRect(x*TS+TS-3,y*TS,3,TS);
+}
+function drawBoothTile(g,tx,ty,cap,t){
+  const x=tx*TS,y=ty*TS,p=st.pal;
+  tileFloor(g,tx,ty);
+  g.fillStyle=p.mat;g.fillRect(x+3,y+3,TS-6,TS-6);
+  g.fillStyle='#39424e';g.fillRect(x+5,y+5,TS-10,TS-10);
+  // 紅屋頂＋香菸標誌
+  g.fillStyle='#c0392b';g.fillRect(x+2,y+2,TS-4,9);
+  g.fillStyle='#fff';g.fillRect(x+12,y+5,16,4);g.fillStyle='#ff7a2f';g.fillRect(x+28,y+5,5,4);
+  if(cap){
+    drawSprite(g,SPR_SMOKER,x+12,y+13,2,false,{H:'#c9a06a',Y:'#b8c4d0',y:'#8f9aa8'});
+  }else{
+    // 空牢：閃光邀請
+    const a=0.5+Math.sin(t*4+tx+ty)*0.25;
+    g.fillStyle=`rgba(255,210,60,${a*0.35})`;g.fillRect(x+6,y+12,TS-12,TS-18);
+    g.fillStyle='#ffd23c';g.fillRect(x+TS/2-2,y+TS/2-2,4,4);
+  }
+  // 玻璃
+  g.fillStyle='rgba(150,215,255,.30)';g.fillRect(x+5,y+12,TS-10,TS-17);
+  g.fillStyle='#22303e';
+  g.fillRect(x+5,y+12,3,TS-17);g.fillRect(x+TS-8,y+12,3,TS-17);g.fillRect(x+TS/2-1,y+12,2,TS-17);
+  g.fillStyle='rgba(255,255,255,.5)';g.fillRect(x+9,y+15,5,TS-24);
+  if(cap){g.fillStyle='#3fae5a';g.fillRect(x+TS-14,y+TS-13,10,9);g.fillStyle='#fff';g.fillRect(x+TS-12,y+TS-9,2,4);g.fillRect(x+TS-9,y+TS-11,2,6);}
+}
+function drawGameScene(t){
+  if(!st.grid)return;
+  gx.clearRect(0,0,gcv.width,gcv.height);
+  // 地板＋牆
+  for(let y=0;y<st.rows;y++)for(let x=0;x<st.cols;x++){
+    if(st.grid[y][x]===1)continue;
+    if(!targetAt(x,y))tileFloor(gx,x,y);
+  }
+  // 吸菸牢
+  for(const tg of st.targets){
+    const cap=st.smokers.some(s=>s.cap&&s.x===tg.x&&s.y===tg.y);
+    drawBoothTile(gx,tg.x,tg.y,cap,t);
+  }
+  // 牆（後畫，帶陰影）
+  for(let y=0;y<st.rows;y++)for(let x=0;x<st.cols;x++){
+    if(st.grid[y][x]===1){tileWall(gx,x,y);
+      if(y+1<st.rows&&st.grid[y+1][x]!==1){gx.fillStyle='rgba(0,0,0,.15)';gx.fillRect(x*TS,(y+1)*TS,TS,4);}
+    }
+  }
+  // 菸客煙霧粒子生成
+  const dt=1/60;
+  for(const s of st.smokers){
+    if(s.cap)continue;
+    if(Math.random()<0.14)st.smokeP.push({x:s.ax+TS/2+(Math.random()-0.5)*10,y:s.ay+6,vx:(Math.random()-0.5)*10,vy:-14-Math.random()*10,life:1.4+Math.random(),sz:3+Math.random()*3});
+  }
+  st.smokeP=st.smokeP.filter(p=>p.life>0);
+  for(const p of st.smokeP){
+    p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx+=Math.sin(t*3+p.y)*2*dt;
+    gx.globalAlpha=Math.max(0,p.life/1.8)*0.6;gx.fillStyle='#b9bec8';
+    gx.fillRect(p.x,p.y,p.sz,p.sz);gx.globalAlpha=1;
+  }
+  // 菸客
+  for(const s of st.smokers){
+    s.ax+=(s.x*TS-s.ax)*0.3;s.ay+=(s.y*TS-s.ay)*0.3;
+    if(s.cap)continue;
+    const bob=Math.round(Math.sin(t*4+s.x*2+s.y)*2);
+    gx.fillStyle='rgba(0,0,0,.2)';gx.fillRect(s.ax+9,s.ay+TS-6,TS-18,4);
+    drawSprite(gx,SPR_SMOKER,s.ax+6,s.ay+bob,3,false);
+    // 香菸亮點
+    if(Math.sin(t*6+s.x)>0.6){gx.fillStyle='#ff5a1f';gx.fillRect(s.ax+36,s.ay+21+bob,3,3);}
+  }
+  // 英雄
+  const pl=st.player;
+  pl.px+=(pl.x*TS-pl.px)*0.3;pl.py+=(pl.y*TS-pl.py)*0.3;
+  gx.fillStyle='rgba(0,0,0,.2)';gx.fillRect(pl.px+9,pl.py+TS-6,TS-18,4);
+  const hop=st.won?Math.abs(Math.round(Math.sin(t*10)*5)):0;
+  if(pl.face<0){
+    gx.save();gx.translate(pl.px+TS,pl.py-hop);gx.scale(-1,1);
+    drawSprite(gx,SPR_HERO,6,0,3,false);gx.restore();
+  }else drawSprite(gx,SPR_HERO,pl.px+6,pl.py-hop,3,false);
+  // 勝利火花
+  st.sparkP=st.sparkP.filter(p=>p.life>0);
+  for(const p of st.sparkP){
+    p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=240*dt;
+    gx.globalAlpha=Math.max(0,p.life);gx.fillStyle=p.col;gx.fillRect(p.x,p.y,4,4);gx.globalAlpha=1;
+  }
+}
+
+/* ---------------- HUD ---------------- */
+function updateHUD(){
+  const lv=LEVELS[st.lvl];
+  $('#lvName').textContent=`第${st.lvl+1}關 ${lv.d}・${lv.n}`;
+  const cap=st.smokers.filter(s=>s.cap).length;
+  $('#moveInfo').textContent=`步數 ${st.moves}/${lv.par} 🚬${cap}/${st.smokers.length?'':''}${st.smokers.length}`;
+  $('#xpInfo').textContent=`⭐${save.stars.reduce((a,b)=>a+b,0)} ✨${save.xp} ${curTitle(save.xp)}`;
+}
+function buildDots(){
+  const box=$('#progressDots');box.innerHTML='';
+  for(let i=0;i<20;i++){
+    const d=document.createElement('div');d.className='dot';
+    if(save.stars[i]>0)d.classList.add('s'+save.stars[i]);
+    if(i===st.lvl)d.classList.add('cur');
+    d.title=`第${i+1}關`;box.appendChild(d);
+  }
+}
+
+/* ---------------- 輸入 ---------------- */
+window.addEventListener('keydown',e=>{
+  const k=e.key;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(k))e.preventDefault();
+  if($('#helpModal').classList.contains('hidden')===false){if(k==='Escape'||k==='Enter')toggleHelp(false);return;}
+  const active=$('#screen-game').classList.contains('active');
+  if(active){
+    if(k==='ArrowUp'||k==='w'||k==='W')tryMove(0,-1);
+    else if(k==='ArrowDown'||k==='s'||k==='S')tryMove(0,1);
+    else if(k==='ArrowLeft'||k==='a'||k==='A')tryMove(-1,0);
+    else if(k==='ArrowRight'||k==='d'||k==='D')tryMove(1,0);
+    else if(k==='z'||k==='Z')doUndo();
+    else if(k==='r'||k==='R')restartLevel();
+  }
+  if($('#screen-story').classList.contains('active')&&(k===' '||k==='Enter'))storyAdvance();
+});
+document.querySelectorAll('.dbtn').forEach(b=>{
+  const dir=b.dataset.dir;
+  const mv=()=>{if(dir==='up')tryMove(0,-1);if(dir==='down')tryMove(0,1);if(dir==='left')tryMove(-1,0);if(dir==='right')tryMove(1,0);};
+  b.addEventListener('pointerdown',e=>{e.preventDefault();A.resume();mv();});
+});
+// 滑動手勢
+let swX=0,swY=0,swOn=false;
+gcv.addEventListener('pointerdown',e=>{swOn=true;swX=e.clientX;swY=e.clientY;});
+gcv.addEventListener('pointerup',e=>{
+  if(!swOn)return;swOn=false;
+  const dx=e.clientX-swX,dy=e.clientY-swY;
+  if(Math.abs(dx)<24&&Math.abs(dy)<24)return;
+  if(Math.abs(dx)>Math.abs(dy))tryMove(dx>0?1:-1,0);else tryMove(0,dy>0?1:-1);
+});
+function restartLevel(){SFX.click();parseLevel(st.lvl);}
+
+/* =====================================================================
+   劇情引擎
+   ===================================================================== */
+const scv=$('#storyCanvas'),sx2=scv.getContext('2d');
+let story={key:null,idx:0,cb:null,typing:false,chars:0,full:'',timer:null};
+function playStory(key,cb){
+  story={key,idx:0,cb,typing:false,chars:0,full:'',timer:null};
+  const S=STORIES[key];
+  $('#storyChap').textContent=S.chap;
+  showScreen('screen-story');
+  playMusic(S.music);
+  sceneFX.fw=[];sceneFX.conf=[];
+  storyAdvance(true);
+}
+function storyAdvance(first){
+  if(story.typing){ // 快進
+    clearInterval(story.timer);story.typing=false;
+    $('#storyText').textContent=story.full;$('#storyNext').style.display='block';
+    return;
+  }
+  const S=STORIES[story.key];
+  if(!first&&story.idx>=S.slides.length){
+    if(story.cb)story.cb();
+    return;
+  }
+  if(first)story.idx=0;else story.idx++;
+  if(story.idx>=S.slides.length){if(story.cb)story.cb();return;}
+  const sl=S.slides[story.idx];
+  $('#storySpeaker').textContent=sl.sp;
+  story.full=sl.tx;story.chars=0;story.typing=true;
+  $('#storyText').textContent='';$('#storyNext').style.display='none';
+  clearInterval(story.timer);
+  story.timer=setInterval(()=>{
+    story.chars+=2;
+    $('#storyText').textContent=story.full.slice(0,story.chars);
+    if(story.chars>=story.full.length){
+      clearInterval(story.timer);story.typing=false;
+      $('#storyText').textContent=story.full;$('#storyNext').style.display='block';
+    }
+  },28);
+}
+$('#storyBox').addEventListener('pointerdown',e=>{e.preventDefault();A.resume();SFX.click();storyAdvance(false);});
+$('#storyWrap').addEventListener('pointerdown',e=>{if(e.target===scv){A.resume();storyAdvance(false);}});
+
+/* =====================================================================
+   畫面切換 & 主迴圈
+   ===================================================================== */
+let activeScreen='screen-title';
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('#'+id).classList.add('active');
+  activeScreen=id;
+}
+const tcv=$('#titleCanvas'),tx2=tcv.getContext('2d');
+const ecv=$('#endCanvas'),ex2=ecv.getContext('2d');
+let lastTs=0;
+function loop(ts){
+  requestAnimationFrame(loop);
+  const t=ts/1000;
+  if(activeScreen==='screen-title')drawScene(tx2,480,270,'clean',t);
+  else if(activeScreen==='screen-story')drawScene(sx2,480,270,STORIES[story.key].scene,t);
+  else if(activeScreen==='screen-game')drawGameScene(t);
+  else if(activeScreen==='screen-ending')drawScene(ex2,480,270,'party',t);
+}
+requestAnimationFrame(loop);
+
+/* ---------------- 結局 ---------------- */
+function showEnding(){
+  showScreen('screen-ending');
+  playMusic('end');
+  sceneFX.fw=[];sceneFX.conf=[];
+  const totalStars=save.stars.reduce((a,b)=>a+b,0);
+  $('#endText').textContent=
+`🏆 恭喜通關《無菸城市》！
+台北市 12 個行政區、20 條商業步行街全數淨化，
+二手菸成為歷史名詞，清新空氣回來了！
+
+「抽菸請至指定吸菸區，城市的清新由大家守護。」
+
+—— 製作：反二手菸防衛隊 × Qwen ——
+—— 圖像・音樂・關卡：全程式即時生成 ——`;
+  $('#endStats').innerHTML=`最終頭銜：<b>${curTitle(save.xp)}</b>　⭐總星數：${totalStars}/60　✨總經驗：${save.xp}`;
+}
+
+/* ---------------- 按鈕 ---------------- */
+function anyGesture(){A.resume();}
+document.body.addEventListener('pointerdown',anyGesture,{once:true});
+
+$('#btnStart').addEventListener('click',()=>{
+  SFX.click();A.resume();
+  save={unlocked:0,stars:new Array(20).fill(0),xp:0};writeSave();
+  playStory('intro',()=>startLevel(0));
+});
+$('#btnContinue').addEventListener('click',()=>{
+  SFX.click();A.resume();
+  if(save.unlocked<=0){playStory('intro',()=>startLevel(0));return;}
+  startLevel(Math.min(save.unlocked,19));
+});
+$('#btnNext').addEventListener('click',()=>{SFX.click();nextLevel();});
+$('#btnUndo').addEventListener('click',()=>{A.resume();doUndo();});
+$('#btnRestart').addEventListener('click',()=>{A.resume();restartLevel();});
+$('#btnQuit').addEventListener('click',()=>{
+  SFX.click();writeSave();
+  showScreen('screen-title');playMusic('title');refreshContinue();
+});
+function toggleHelp(show){
+  $('#helpModal').classList.toggle('hidden',!show);
+  if(show)SFX.click();
+}
+$('#btnHelpTitle').addEventListener('click',()=>toggleHelp(true));
+$('#btnHelpGame').addEventListener('click',()=>toggleHelp(true));
+$('#btnHelpClose').addEventListener('click',()=>toggleHelp(false));
+$('#helpModal').addEventListener('pointerdown',e=>{if(e.target.id==='helpModal')toggleHelp(false);});
+function musicBtns(){
+  const on=A.toggle();
+  if(on){A.resume();playMusic(A.wantTrack);}
+  ['#btnMusicTitle','#btnMusicGame'].forEach(id=>$(id).textContent=on?'♪ 音樂：開':'♪ 音樂：關');
+}
+$('#btnMusicTitle').addEventListener('click',()=>{A.resume();musicBtns();});
+$('#btnMusicGame').addEventListener('click',()=>{A.resume();musicBtns();});
+$('#btnAgain').addEventListener('click',()=>{
+  SFX.click();
+  save={unlocked:0,stars:new Array(20).fill(0),xp:0};writeSave();
+  playStory('intro',()=>startLevel(0));
+});
+$('#btnEndHome').addEventListener('click',()=>{
+  SFX.click();showScreen('screen-title');playMusic('title');refreshContinue();
+});
+function refreshContinue(){
+  const has=save.unlocked>0||save.xp>0;
+  $('#btnContinue').disabled=!has;
+  $('#btnContinue').textContent=has?`▶ 繼續遊戲（第${Math.min(save.unlocked+1,20)}關）`:'▶ 繼續遊戲';
+}
+refreshContinue();
+buildDots();
+playMusic('title');
+</script>
+</body>
+</html>
